@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ezzayra Smart Farm - Irrigation Intelligente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f4f7f5;
+            color: #2c3e50;
+        }
+        /* Navbar */
+        header {
+            background-color: #1b4332;
+            color: white;
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .logo span {
+            color: #52b788;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 500;
+        }
+        .btn-login {
+            background-color: #52b788;
+            color: #1b4332 !important;
+            padding: 8px 18px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(rgba(27, 67, 50, 0.85), rgba(27, 67, 50, 0.85)), 
+                        url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1350&q=80') center/cover;
+            color: white;
+            text-align: center;
+            padding: 100px 20px;
+        }
+        .hero h1 {
+            font-size: 2.8rem;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 30px auto;
+            line-height: 1.6;
+        }
+        .btn-primary {
+            background-color: #52b788;
+            color: #1b4332;
+            padding: 14px 30px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        /* Features */
+        .features {
+            padding: 60px 5%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            text-align: center;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .card h3 {
+            color: #1b4332;
+            margin-bottom: 15px;
+        }
+        /* Footer */
+        footer {
+            background-color: #1b4332;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">EZZAYRA <span>SMART FARM</span></div>
+        <nav>
+            <a href="#solutions">Nos Solutions</a>
+            <a href="#capteurs">Capteurs IoT</a>
+            <a href="#contact">Contact</a>
+            <a href="#login" class="btn-login">Connexion</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>Optimisez votre irrigation grâce à l'Agriculture de Précision</h1>
+        <p>Surveillez l'humidité de vos sols en temps réel, économisez jusqu'à 40% d'eau et pilotez vos parcelles agricoles à distance avec Ezzayra Solutions.</p>
+        <a href="#login" class="btn-primary">Accéder à mon Espace Agriculteur</a>
+    </section>
+
+    <section class="features" id="solutions">
+        <div class="card">
+            <h3>🌱 Monitoring Temps Réel</h3>
+            <p>Suivez la température, l'humidité et la salinité de vos parcelles 24h/24 depuis votre tableau de bord.</p>
+        </div>
+        <div class="card">
+            <h3>💧 Irrigation Automatisée</h3>
+            <p>Déclenchez l'arrosage à distance ou programmez des cycles automatiques selon les prévisions météo.</p>
+        </div>
+        <div class="card">
+            <h3>⚠️ Alertes Intelligentes</h3>
+            <p>Recevez des notifications instantanées par SMS ou Email en cas de stress hydrique ou d'anomalie.</p>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Ezzayra Solutions - Tous droits réservés | Portail Web Smart Farm</p>
+    </footer>
+
+</body>
+</html>
