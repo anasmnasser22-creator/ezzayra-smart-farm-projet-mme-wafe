@@ -4,140 +4,1419 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ezzayra Smart Farm - Irrigation Intelligente</title>
+    <!-- Tailwind CSS pour une mise en page fluide et responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js pour les courbes hydriques et thermiques (Sprint 3) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome pour les icônes agricoles et IoT -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         body {
             background-color: #f4f7f5;
             color: #2c3e50;
+            overflow-x: hidden;
         }
-        /* Navbar */
-        header {
-            background-color: #1b4332;
-            color: white;
-            padding: 1rem 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-        .logo span {
-            color: #52b788;
-        }
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-left: 20px;
-            font-weight: 500;
-        }
-        .btn-login {
-            background-color: #52b788;
-            color: #1b4332 !important;
-            padding: 8px 18px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        /* Hero Section */
+        /* Palette Ezzayra conservée */
+        .bg-ezzayra-dark { background-color: #1b4332; }
+        .text-ezzayra-dark { color: #1b4332; }
+        .bg-ezzayra-green { background-color: #52b788; }
+        .text-ezzayra-green { color: #52b788; }
+        .border-ezzayra-green { border-color: #52b788; }
+
+        /* Hero Section fidèle à la maquette */
         .hero {
-            background: linear-gradient(rgba(27, 67, 50, 0.85), rgba(27, 67, 50, 0.85)), 
+            background: linear-gradient(rgba(27, 67, 50, 0.85), rgba(27, 67, 50, 0.88)), 
                         url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1350&q=80') center/cover;
             color: white;
             text-align: center;
             padding: 100px 20px;
         }
-        .hero h1 {
-            font-size: 2.8rem;
-            margin-bottom: 20px;
+
+        /* Animations et interactions carte SVG */
+        .plot-polygon {
+            cursor: pointer;
+            transition: all 0.25s ease;
         }
-        .hero p {
-            font-size: 1.2rem;
-            max-width: 700px;
-            margin: 0 auto 30px auto;
-            line-height: 1.6;
+        .plot-polygon:hover {
+            filter: brightness(1.08);
+            stroke-width: 4px;
         }
-        .btn-primary {
-            background-color: #52b788;
-            color: #1b4332;
-            padding: 14px 30px;
-            text-decoration: none;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 6px;
-            display: inline-block;
+        .plot-selected {
+            stroke: #f59e0b !important;
+            stroke-width: 4.5px !important;
+            filter: drop-shadow(0 4px 8px rgba(245, 158, 11, 0.4));
         }
-        /* Features */
-        .features {
-            padding: 60px 5%;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-            text-align: center;
+
+        /* Animation pulse pour les capteurs et électrovannes actives */
+        @keyframes pulse-water {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(1.08); }
         }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        .valve-active-pulse {
+            animation: pulse-water 1.8s infinite ease-in-out;
         }
-        .card h3 {
-            color: #1b4332;
-            margin-bottom: 15px;
-        }
-        /* Footer */
-        footer {
-            background-color: #1b4332;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: 40px;
-        }
+
+        /* Transitions de vues */
+        .hidden-view { display: none !important; }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-    <header>
-        <div class="logo">EZZAYRA <span>SMART FARM</span></div>
-        <nav>
-            <a href="#solutions">Nos Solutions</a>
-            <a href="#capteurs">Capteurs IoT</a>
-            <a href="#contact">Contact</a>
-            <a href="#login" class="btn-login">Connexion</a>
-        </nav>
-    </header>
+    <!-- ==================== SYSTÈME DE NOTIFICATIONS TOAST (SPRINT 3 & 4) ==================== -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none"></div>
 
-    <section class="hero">
-        <h1>Optimisez votre irrigation grâce à l'Agriculture de Précision</h1>
-        <p>Surveillez l'humidité de vos sols en temps réel, économisez jusqu'à 40% d'eau et pilotez vos parcelles agricoles à distance avec Ezzayra Solutions.</p>
-        <a href="#login" class="btn-primary">Accéder à mon Espace Agriculteur</a>
-    </section>
+    <!-- =========================================================================================
+         VUE 1 : PORTAIL PUBLIC (SPRINT 1 - LANDING PAGE CONSERVÉE & ENRICHIE)
+    ========================================================================================== -->
+    <div id="public-portal-view" class="flex-1 flex flex-col">
+        <!-- Navbar -->
+        <header class="bg-ezzayra-dark text-white px-[5%] py-4 flex flex-wrap justify-between items-center sticky top-0 z-40 shadow-md">
+            <a href="#" onclick="showPublicSection('top')" class="text-2xl font-bold tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-seedling text-ezzayra-green"></i>
+                <span>EZZAYRA <span class="text-ezzayra-green">SMART FARM</span></span>
+            </a>
+            <nav class="flex items-center gap-4 sm:gap-6 mt-2 sm:mt-0">
+                <a href="#solutions" class="hover:text-ezzayra-green transition font-medium text-sm sm:text-base">Nos Solutions</a>
+                <a href="#capteurs" class="hover:text-ezzayra-green transition font-medium text-sm sm:text-base">Capteurs IoT</a>
+                <a href="#contact" class="hover:text-ezzayra-green transition font-medium text-sm sm:text-base">Contact</a>
+                <button onclick="openLoginModal()" class="bg-ezzayra-green text-ezzayra-dark px-5 py-2 rounded-lg font-bold hover:brightness-105 transition shadow cursor-pointer">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> Connexion
+                </button>
+            </nav>
+        </header>
 
-    <section class="features" id="solutions">
-        <div class="card">
-            <h3>🌱 Monitoring Temps Réel</h3>
-            <p>Suivez la température, l'humidité et la salinité de vos parcelles 24h/24 depuis votre tableau de bord.</p>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="max-w-4xl mx-auto">
+                <span class="inline-block bg-white/15 text-ezzayra-green border border-ezzayra-green/40 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5">
+                    Plateforme Web & IoT Agricole • Tunisie
+                </span>
+                <h1 class="text-3xl sm:text-5xl font-bold mb-5 leading-tight">
+                    Optimisez votre irrigation grâce à l'Agriculture de Précision
+                </h1>
+                <p class="text-base sm:text-xl max-w-2xl mx-auto mb-8 leading-relaxed text-gray-100">
+                    Surveillez l'humidité de vos sols en temps réel, économisez jusqu'à 40% d'eau et pilotez vos parcelles agricoles à distance avec Ezzayra Solutions.
+                </p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button onclick="openLoginModal()" class="bg-ezzayra-green text-ezzayra-dark px-8 py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-[1.02] transition cursor-pointer">
+                        <i class="fa-solid fa-tractor mr-2"></i> Accéder à mon Espace Agriculteur
+                    </button>
+                    <a href="#solutions" class="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-7 py-4 text-lg font-semibold rounded-xl transition">
+                        Découvrir l'Architecture
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features (Les 3 cartes principales) -->
+        <section class="py-16 px-[5%] max-w-7xl mx-auto w-full" id="solutions">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-ezzayra-dark mb-3">Une gestion hydrique intelligente de bout en bout</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">Des capteurs LoRaWAN installés dans vos parcelles jusqu'à l'automatisation des électrovannes selon la météo locale.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-7 text-center">
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <div class="w-14 h-14 rounded-xl bg-emerald-100 text-ezzayra-dark flex items-center justify-center text-2xl mx-auto mb-5">
+                        🌱
+                    </div>
+                    <h3 class="text-xl font-bold text-ezzayra-dark mb-3">Monitoring Temps Réel</h3>
+                    <p class="text-gray-600 leading-relaxed">Suivez la température, l'humidité volumétrique et la salinité de vos parcelles 24h/24 depuis votre tableau de bord.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <div class="w-14 h-14 rounded-xl bg-emerald-100 text-ezzayra-dark flex items-center justify-center text-2xl mx-auto mb-5">
+                        💧
+                    </div>
+                    <h3 class="text-xl font-bold text-ezzayra-dark mb-3">Irrigation Automatisée</h3>
+                    <p class="text-gray-600 leading-relaxed">Déclenchez l'arrosage à distance ou programmez des cycles automatiques qui s'adaptent aux prévisions météo.</p>
+                </div>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <div class="w-14 h-14 rounded-xl bg-emerald-100 text-ezzayra-dark flex items-center justify-center text-2xl mx-auto mb-5">
+                        ⚠️
+                    </div>
+                    <h3 class="text-xl font-bold text-ezzayra-dark mb-3">Alertes Intelligentes</h3>
+                    <p class="text-gray-600 leading-relaxed">Recevez des notifications instantanées par SMS ou Email en cas de stress hydrique critique ou d'anomalie capteur.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Capteurs IoT & Architecture Technique -->
+        <section class="py-12 px-[5%] bg-white border-t border-b border-gray-200" id="capteurs">
+            <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">Matériel & Télémétrie</span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-ezzayra-dark mt-3 mb-4">Sondes Multi-Profondeurs & Électrovannes Connectées</h2>
+                    <p class="text-gray-600 mb-6 leading-relaxed">
+                        Chaque station Ezzayra mesure l'humidité du sol à 15 cm et 45 cm de profondeur, la température racinaire et l'électro-conductivité (salinité), transmettant les données toutes les 15 minutes au cloud.
+                    </p>
+                    <ul class="space-y-3 text-gray-700 mb-6">
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-ezzayra-green"></i> Autonomie solaire de 5 ans et portée radio 10 km (LoRaWAN)</li>
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-ezzayra-green"></i> Cartographie interactive des parcelles et seuils par culture</li>
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check text-ezzayra-green"></i> Exportation des bilans hydriques en CSV pour traçabilité</li>
+                    </ul>
+                    <button onclick="openLoginModal()" class="bg-ezzayra-dark text-white px-6 py-3 rounded-xl font-semibold hover:bg-emerald-900 transition cursor-pointer">
+                        Tester la Démo Interactive <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+                <div class="bg-[#f4f7f5] p-6 rounded-2xl border border-gray-200 grid grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm">
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Économie d'Eau</p>
+                        <p class="text-3xl font-bold text-ezzayra-dark mt-1">-38%</p>
+                        <p class="text-xs text-emerald-600 mt-1">Moyenne constatée sur oliviers & agrumes</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm">
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Précision Sonde</p>
+                        <p class="text-3xl font-bold text-ezzayra-dark mt-1">±1.5%</p>
+                        <p class="text-xs text-emerald-600 mt-1">Humidité volumétrique & salinité</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm">
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Temps de Réaction</p>
+                        <p class="text-3xl font-bold text-ezzayra-dark mt-1">&lt; 2 sec</p>
+                        <p class="text-xs text-emerald-600 mt-1">Ouverture / Fermeture vanne à distance</p>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl shadow-sm">
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Couverture Météo</p>
+                        <p class="text-3xl font-bold text-ezzayra-dark mt-1">7 Jours</p>
+                        <p class="text-xs text-emerald-600 mt-1">Report automatique en cas de pluie</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Contact -->
+        <section class="py-12 px-[5%] max-w-4xl mx-auto w-full text-center" id="contact">
+            <h2 class="text-2xl font-bold text-ezzayra-dark mb-2">Besoin d'équiper votre exploitation ?</h2>
+            <p class="text-gray-600 mb-6">Contactez l'équipe d'ingénieurs agronomes et IoT Ezzayra Solutions.</p>
+            <form onsubmit="handleContactSubmit(event)" class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 text-left grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nom & Exploitation</label>
+                    <input type="text" required placeholder="Ex: Domaine Ben Ali" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-ezzayra-green">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email ou Téléphone</label>
+                    <input type="text" required placeholder="+216 22 000 000" class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-ezzayra-green">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Superficie et cultures principales</label>
+                    <textarea rows="2" required placeholder="Ex: 15 hectares d'oliviers et agrumes dans le Cap Bon..." class="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:border-ezzayra-green"></textarea>
+                </div>
+                <div class="sm:col-span-2 text-right">
+                    <button type="submit" class="bg-ezzayra-dark text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-emerald-900 transition cursor-pointer">
+                        Envoyer la demande
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-ezzayra-dark text-white text-center py-6 mt-auto">
+            <p class="text-sm">&copy; 2026 Ezzayra Solutions - Tous droits réservés | Portail Web Smart Farm</p>
+        </footer>
+    </div>
+
+    <!-- =========================================================================================
+         MODALE DE CONNEXION (SPRINT 1 - AUTHENTIFICATION SÉCURISÉE)
+    ========================================================================================== -->
+    <div id="login-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden-view flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-7 shadow-2xl relative animate-fade-in">
+            <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 bg-emerald-100 text-ezzayra-dark rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-ezzayra-dark">Espace Agriculteur</h2>
+                <p class="text-sm text-gray-500 mt-1">Connectez-vous pour superviser vos parcelles Ezzayra</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Adresse Email</label>
+                    <input type="email" id="login-email" value="agriculteur@ezzayra.tn" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:border-ezzayra-green">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Mot de passe</label>
+                    <input type="password" id="login-password" value="demo2026" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:border-ezzayra-green">
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-emerald-600 text-base"></i>
+                    <span>Identifiants de démonstration pré-remplis pour l'accès direct au tableau de bord des 4 Sprints.</span>
+                </div>
+                <button type="submit" class="w-full bg-ezzayra-dark text-white py-3 rounded-xl font-bold hover:bg-emerald-900 transition shadow-md cursor-pointer">
+                    Se connecter au Tableau de Bord
+                </button>
+            </form>
         </div>
-        <div class="card">
-            <h3>💧 Irrigation Automatisée</h3>
-            <p>Déclenchez l'arrosage à distance ou programmez des cycles automatiques selon les prévisions météo.</p>
-        </div>
-        <div class="card">
-            <h3>⚠️ Alertes Intelligentes</h3>
-            <p>Recevez des notifications instantanées par SMS ou Email en cas de stress hydrique ou d'anomalie.</p>
-        </div>
-    </section>
+    </div>
 
-    <footer>
-        <p>&copy; 2026 Ezzayra Solutions - Tous droits réservés | Portail Web Smart Farm</p>
-    </footer>
-    
+    <!-- =========================================================================================
+         VUE 2 : ESPACE AGRICULTEUR (DASHBOARD COMPLET DES 4 SPRINTS)
+    ========================================================================================== -->
+    <div id="dashboard-view" class="hidden-view min-h-screen flex flex-col lg:flex-row bg-[#f4f7f5]">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="bg-ezzayra-dark text-white w-full lg:w-72 flex-shrink-0 flex flex-col justify-between shadow-xl">
+            <div>
+                <!-- Brand -->
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 font-bold text-lg tracking-wide">
+                        <i class="fa-solid fa-seedling text-ezzayra-green text-xl"></i>
+                        <span>EZZAYRA <span class="text-ezzayra-green">FARM</span></span>
+                    </div>
+                    <span class="text-[10px] uppercase bg-ezzayra-green text-ezzayra-dark font-bold px-2 py-0.5 rounded">IoT v2.4</span>
+                </div>
+
+                <!-- Farmer Info -->
+                <div class="px-6 py-4 bg-black/15 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-ezzayra-green text-ezzayra-dark font-bold flex items-center justify-center">
+                        MB
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-semibold truncate" id="sidebar-farmer-name">Mohamed Ben Salem</p>
+                        <p class="text-xs text-emerald-300 truncate">Domaine Ezzayra • Mornag</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="p-4 space-y-1.5" id="dashboard-nav">
+                    <button onclick="switchTab('overview')" data-tab="overview" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium transition bg-ezzayra-green text-ezzayra-dark font-bold cursor-pointer">
+                        <i class="fa-solid fa-gauge-high w-5 text-center"></i>
+                        <span>Vue d'ensemble</span>
+                    </button>
+                    <button onclick="switchTab('map')" data-tab="map" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-200 hover:bg-white/10 transition cursor-pointer">
+                        <i class="fa-solid fa-map-location-dot w-5 text-center"></i>
+                        <span>Parcelles & Capteurs IoT</span>
+                    </button>
+                    <button onclick="switchTab('analytics')" data-tab="analytics" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-200 hover:bg-white/10 transition cursor-pointer justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                            <span>Graphiques & Alertes</span>
+                        </div>
+                        <span id="alert-badge-count" class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">1</span>
+                    </button>
+                    <button onclick="switchTab('irrigation')" data-tab="irrigation" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-200 hover:bg-white/10 transition cursor-pointer">
+                        <i class="fa-solid fa-faucet-drip w-5 text-center"></i>
+                        <span>Pilotage Irrigation & Météo</span>
+                    </button>
+                    <button onclick="switchTab('account')" data-tab="account" class="nav-tab w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left font-medium text-gray-200 hover:bg-white/10 transition cursor-pointer">
+                        <i class="fa-solid fa-user-gear w-5 text-center"></i>
+                        <span>Mon Compte</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Logout -->
+            <div class="p-4 border-t border-white/10">
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-red-500/80 text-white text-sm font-semibold transition cursor-pointer">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Retour au Portail Public</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Content Area -->
+        <main class="flex-1 p-5 sm:p-8 overflow-y-auto">
+            
+            <!-- Top Header Bar -->
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-7 pb-4 border-b border-gray-200">
+                <div>
+                    <h1 id="page-title" class="text-2xl sm:text-3xl font-bold text-ezzayra-dark">Tableau de Bord Général</h1>
+                    <p id="page-subtitle" class="text-sm text-gray-500 mt-0.5">Supervision en temps réel de votre exploitation agricole</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="weather-pill" class="bg-white px-4 py-2 rounded-xl shadow-xs border border-gray-200 flex items-center gap-2.5 text-sm font-medium">
+                        <i class="fa-solid fa-sun text-amber-500 text-lg"></i>
+                        <span>Mornag : <strong>24°C</strong> • Ensoleillé (Pluie 10%)</span>
+                    </div>
+                    <button onclick="openAddPlotModal()" class="bg-ezzayra-dark text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-900 transition shadow-xs cursor-pointer">
+                        <i class="fa-solid fa-plus mr-1"></i> Nouvelle Parcelle
+                    </button>
+                </div>
+            </div>
+
+            <!-- =================================================================
+                 ONGLET 1 : VUE D'ENSEMBLE (SPRINT 1 - KPIs & RÉSUMÉ)
+            ================================================================== -->
+            <section id="tab-overview" class="dashboard-tab space-y-7">
+                <!-- Executive KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+                    <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase">Parcelles Actives</p>
+                                <h3 id="kpi-plots" class="text-3xl font-bold text-ezzayra-dark mt-2">4</h3>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-ezzayra-dark flex items-center justify-center">
+                                <i class="fa-solid fa-vector-square"></i>
+                            </div>
+                        </div>
+                        <p id="kpi-total-area" class="text-xs text-gray-500 mt-3">Superficie totale : <strong>18.5 ha</strong></p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase">Capteurs IoT</p>
+                                <h3 id="kpi-sensors" class="text-3xl font-bold text-ezzayra-dark mt-2">12/12</h3>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                                <i class="fa-solid fa-tower-broadcast"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-emerald-600 font-medium mt-3"><i class="fa-solid fa-circle text-[8px] mr-1"></i> 100% en ligne (LoRaWAN)</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase">Électrovannes</p>
+                                <h3 id="kpi-valves" class="text-3xl font-bold text-ezzayra-dark mt-2">1 / 4</h3>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center">
+                                <i class="fa-solid fa-faucet-drip"></i>
+                            </div>
+                        </div>
+                        <p id="kpi-valve-status" class="text-xs text-cyan-700 font-medium mt-3">1 vanne en cours d'arrosage</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase">Humidité Moyenne</p>
+                                <h3 id="kpi-moisture" class="text-3xl font-bold text-ezzayra-dark mt-2">42%</h3>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center">
+                                <i class="fa-solid fa-droplet"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3">Plage optimale : <strong>35% - 60%</strong></p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-500 uppercase">Économie d'Eau</p>
+                                <h3 class="text-3xl font-bold text-emerald-600 mt-2">-38%</h3>
+                            </div>
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                                <i class="fa-solid fa-leaf"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3">~14 200 L économisés ce mois</p>
+                    </div>
+                </div>
+
+                <!-- Aperçu rapide des parcelles + Actions rapides -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-bold text-ezzayra-dark">État en Direct des Parcelles</h2>
+                            <button onclick="switchTab('map')" class="text-sm font-semibold text-emerald-700 hover:underline cursor-pointer">
+                                Ouvrir la carte interactive <i class="fa-solid fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                        <div id="overview-plots-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Rempli dynamiquement en JS -->
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between">
+                        <div>
+                            <h2 class="text-lg font-bold text-ezzayra-dark mb-4">Simulation & Tests Rapides</h2>
+                            <p class="text-xs text-gray-500 mb-4">Testez les scénarios clés du système IoT Ezzayra en un clic :</p>
+                            <div class="space-y-3">
+                                <button onclick="simulateDroughtStress()" class="w-full py-3 px-4 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold text-sm flex items-center justify-between transition cursor-pointer">
+                                    <span><i class="fa-solid fa-triangle-exclamation mr-2"></i> Simuler Stress Hydrique</span>
+                                    <i class="fa-solid fa-play text-xs"></i>
+                                </button>
+                                <button onclick="toggleRainSimulation(true); switchTab('irrigation');" class="w-full py-3 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold text-sm flex items-center justify-between transition cursor-pointer">
+                                    <span><i class="fa-solid fa-cloud-showers-heavy mr-2"></i> Simuler Prévision Pluie</span>
+                                    <i class="fa-solid fa-play text-xs"></i>
+                                </button>
+                                <button onclick="exportCSV()" class="w-full py-3 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-ezzayra-dark border border-emerald-200 font-semibold text-sm flex items-center justify-between transition cursor-pointer">
+                                    <span><i class="fa-solid fa-file-csv mr-2"></i> Exporter Bilan Hydrique CSV</span>
+                                    <i class="fa-solid fa-download text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                            Dernière synchronisation télémétrique : <span class="text-gray-600 font-medium">À l'instant</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 ONGLET 2 : CARTOGRAPHIE DES PARCELLES & CAPTEURS IOT (SPRINT 2)
+            ================================================================== -->
+            <section id="tab-map" class="dashboard-tab hidden-view space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Carte Interactive SVG du Domaine Ezzayra -->
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                            <div>
+                                <h2 class="text-lg font-bold text-ezzayra-dark">Carte Interactive du Domaine Ezzayra</h2>
+                                <p class="text-xs text-gray-500">Cliquez sur une parcelle pour inspecter ses capteurs et paramètres agronomiques</p>
+                            </div>
+                            <button onclick="openAddPlotModal()" class="bg-ezzayra-green text-ezzayra-dark px-4 py-2 rounded-xl text-xs font-bold hover:brightness-105 transition cursor-pointer">
+                                <i class="fa-solid fa-plus mr-1"></i> Ajouter Parcelle / Capteur
+                            </button>
+                        </div>
+
+                        <!-- SVG Farm Map -->
+                        <div class="relative w-full rounded-xl overflow-hidden border border-emerald-200 bg-[#e6efe9]">
+                            <svg id="farm-svg-map" viewBox="0 0 800 460" class="w-full h-auto block">
+                                <!-- Fond topographique / routes agricoles -->
+                                <rect width="800" height="460" fill="#e9f2ec"/>
+                                <!-- Chemins d'exploitation -->
+                                <path d="M 0 230 L 800 230" stroke="#cbd5e1" stroke-width="14"/>
+                                <path d="M 400 0 L 400 460" stroke="#cbd5e1" stroke-width="14"/>
+                                <!-- Station Météo Centrale -->
+                                <circle cx="400" cy="230" r="18" fill="#1b4332" stroke="#ffffff" stroke-width="3"/>
+                                <text x="400" y="234" text-anchor="middle" fill="#52b788" font-size="11" font-weight="bold">IoT</text>
+                                
+                                <!-- Groupe dynamique pour les polygones des parcelles -->
+                                <g id="svg-plots-layer"></g>
+                            </svg>
+
+                            <!-- Légende carte -->
+                            <div class="bg-white/95 px-4 py-2.5 border-t border-gray-200 flex flex-wrap gap-4 text-xs text-gray-600">
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-[#2d6a4f] inline-block"></span> Humidité Optimale</span>
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs bg-[#dc2626] inline-block"></span> Stress Hydrique (&lt; Seuil)</span>
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-cyan-500 inline-block"></span> Électrovanne Active</span>
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-xs border-2 border-amber-500 inline-block"></span> Parcelle Sélectionnée</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panneau Détail Agronomique & Capteur IoT de la parcelle sélectionnée -->
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100 flex flex-col justify-between" id="plot-detail-panel">
+                        <!-- Rempli dynamiquement par selectPlot(id) -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 ONGLET 3 : GRAPHIQUES, ALERTES & RAPPORTS CSV (SPRINT 3)
+            ================================================================== -->
+            <section id="tab-analytics" class="dashboard-tab hidden-view space-y-6">
+                <!-- Contrôles et Graphique Chart.js -->
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+                        <div>
+                            <h2 class="text-lg font-bold text-ezzayra-dark">Évolution de l'Humidité & Température du Sol</h2>
+                            <p class="text-xs text-gray-500">Surveillance télémétrique avec seuil critique de déclenchement d'alerte</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <select id="chart-plot-selector" onchange="updateAnalyticsChart()" class="px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-ezzayra-dark bg-white focus:outline-none">
+                                <!-- Options générées en JS -->
+                            </select>
+                            <div class="inline-flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
+                                <button onclick="setChartRange('24h')" id="btn-range-24h" class="px-3 py-1.5 rounded-lg bg-white text-ezzayra-dark shadow-xs cursor-pointer">24 Heures</button>
+                                <button onclick="setChartRange('7d')" id="btn-range-7d" class="px-3 py-1.5 rounded-lg text-gray-600 cursor-pointer">7 Jours</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-full h-72">
+                        <canvas id="soilMoistureChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Centre d'Alertes Hydriques & Historique d'Irrigation -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Journal des Alertes -->
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-ezzayra-dark"><i class="fa-solid fa-bell text-amber-500 mr-2"></i>Alertes Hydriques (SMS & Email)</h3>
+                            <button onclick="simulateDroughtStress()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                + Simuler Stress Hydrique
+                            </button>
+                        </div>
+                        <div id="alerts-log-list" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+                            <!-- Rempli dynamiquement en JS -->
+                        </div>
+                    </div>
+
+                    <!-- Historique des Irrigations + Export CSV -->
+                    <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold text-ezzayra-dark"><i class="fa-solid fa-clock-rotate-left text-emerald-600 mr-2"></i>Historique des Irrigations</h3>
+                            <button onclick="exportCSV()" class="bg-ezzayra-dark hover:bg-emerald-900 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer">
+                                <i class="fa-solid fa-file-csv mr-1"></i> Exporter Rapport CSV
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="border-b border-gray-200 text-xs uppercase text-gray-500">
+                                        <th class="py-2.5 px-2">Date</th>
+                                        <th class="py-2.5 px-2">Parcelle</th>
+                                        <th class="py-2.5 px-2">Durée</th>
+                                        <th class="py-2.5 px-2">Volume</th>
+                                        <th class="py-2.5 px-2">Mode</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="irrigation-history-tbody" class="divide-y divide-gray-100">
+                                    <!-- Rempli dynamiquement en JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 ONGLET 4 : PILOTAGE IRRIGATION & MÉTÉO (SPRINT 4)
+            ================================================================== -->
+            <section id="tab-irrigation" class="dashboard-tab hidden-view space-y-6">
+                <!-- Bandeau Automatisation Météo -->
+                <div class="bg-white p-6 rounded-2xl shadow-xs border border-gray-100">
+                    <div class="flex flex-wrap justify-between items-center gap-4 mb-5">
+                        <div>
+                            <h2 class="text-lg font-bold text-ezzayra-dark"><i class="fa-solid fa-cloud-sun-rain text-blue-600 mr-2"></i>Automatisation Météo Intelligente</h2>
+                            <p class="text-xs text-gray-500">Suspension automatique des électrovannes si la probabilité de pluie dépasse 60%</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-4">
+                            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer bg-gray-50 px-3.5 py-2 rounded-xl border border-gray-200">
+                                <input type="checkbox" id="rain-auto-stop-checkbox" checked onchange="toggleAutoRainSetting(this.checked)" class="w-4 h-4 accent-emerald-700">
+                                <span>Arrêt auto si pluie (&gt;60%)</span>
+                            </label>
+                            <button id="btn-sim-rain" onclick="toggleRainSimulation()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer">
+                                <i class="fa-solid fa-cloud-rain mr-1"></i> Simuler Prévision Pluie (85%)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Prévisions 3 Jours -->
+                    <div id="weather-forecast-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Rempli dynamiquement en JS -->
+                    </div>
+                </div>
+
+                <!-- Panneau de Télécommande des Électrovannes par Parcelle -->
+                <div>
+                    <h3 class="text-lg font-bold text-ezzayra-dark mb-4">Télécommande des Électrovannes Solénoïdes</h3>
+                    <div id="valves-control-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Rempli dynamiquement en JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================
+                 ONGLET 5 : MON COMPTE & PRÉFÉRENCES (SPRINT 4)
+            ================================================================== -->
+            <section id="tab-account" class="dashboard-tab hidden-view max-w-3xl">
+                <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xs border border-gray-100 space-y-6">
+                    <div class="flex items-center gap-4 pb-6 border-b border-gray-100">
+                        <div class="w-16 h-16 rounded-2xl bg-ezzayra-dark text-ezzayra-green font-bold text-2xl flex items-center justify-center">
+                            MB
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-ezzayra-dark">Mohamed Ben Salem</h2>
+                            <p class="text-sm text-gray-500">Propriétaire Exploitant • Domaine Ezzayra (Mornag, Tunisie)</p>
+                        </div>
+                    </div>
+
+                    <form onsubmit="saveAccountPreferences(event)" class="space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Nom complet</label>
+                                <input type="text" id="acc-name" value="Mohamed Ben Salem" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Téléphone (Alertes SMS)</label>
+                                <input type="tel" id="acc-phone" value="+216 98 452 110" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Email de notification</label>
+                                <input type="email" id="acc-email" value="agriculteur@ezzayra.tn" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100 space-y-3">
+                            <h3 class="text-sm font-bold uppercase text-gray-500">Canaux de Notification d'Urgence</h3>
+                            <label class="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
+                                <div>
+                                    <p class="font-semibold text-sm text-ezzayra-dark">Alertes SMS instantanées</p>
+                                    <p class="text-xs text-gray-500">Recevoir un SMS dès qu'une parcelle passe sous son seuil critique</p>
+                                </div>
+                                <input type="checkbox" id="pref-sms" checked class="w-5 h-5 accent-emerald-700">
+                            </label>
+                            <label class="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 border border-gray-200 cursor-pointer">
+                                <div>
+                                    <p class="font-semibold text-sm text-ezzayra-dark">Rapports & Alertes Email</p>
+                                    <p class="text-xs text-gray-500">Recevoir les alertes hydriques et le bilan hebdomadaire par email</p>
+                                </div>
+                                <input type="checkbox" id="pref-email" checked class="w-5 h-5 accent-emerald-700">
+                            </label>
+                        </div>
+
+                        <div class="text-right">
+                            <button type="submit" class="bg-ezzayra-dark text-white px-6 py-2.5 rounded-xl font-bold hover:bg-emerald-900 transition cursor-pointer">
+                                Enregistrer mes préférences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- =========================================================================================
+         MODALE D'AJOUT DE PARCELLE & CAPTEUR IOT (SPRINT 2)
+    ========================================================================================== -->
+    <div id="add-plot-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden-view flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative">
+            <button onclick="closeAddPlotModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-xl cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h2 class="text-xl font-bold text-ezzayra-dark mb-1">Ajouter une Parcelle & Appairer un Capteur</h2>
+            <p class="text-xs text-gray-500 mb-5">Définissez les paramètres agronomiques et l'identifiant de la sonde LoRaWAN</p>
+            
+            <form onsubmit="handleAddPlot(event)" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Nom de la Parcelle</label>
+                        <input type="text" id="new-plot-name" required placeholder="Ex: Parcelle Centre - Grenadiers" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Type de Culture</label>
+                        <select id="new-plot-crop" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm bg-white">
+                            <option value="Oliviers">Oliviers</option>
+                            <option value="Agrumes">Agrumes</option>
+                            <option value="Maraîchage">Maraîchage</option>
+                            <option value="Vignes">Vignes</option>
+                            <option value="Grenadiers">Grenadiers</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Superficie (Hectares)</label>
+                        <input type="number" step="0.5" min="0.5" max="50" id="new-plot-area" value="3.5" required class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Type de Sol</label>
+                        <select id="new-plot-soil" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm bg-white">
+                            <option value="Argilo-calcaire">Argilo-calcaire</option>
+                            <option value="Sablonneux">Sablonneux</option>
+                            <option value="Limoneux">Limoneux</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">ID Capteur IoT à Appairer</label>
+                        <input type="text" id="new-plot-sensor" value="SN-EZ-505" required class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-600 mb-1">Seuil Critique Humidité (%)</label>
+                        <input type="number" min="15" max="60" id="new-plot-threshold" value="32" required class="w-full px-3.5 py-2 rounded-xl border border-gray-300 text-sm">
+                    </div>
+                </div>
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="closeAddPlotModal()" class="px-4 py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 cursor-pointer">Annuler</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-ezzayra-dark text-white text-sm font-bold hover:bg-emerald-900 cursor-pointer">
+                        Enregistrer & Appairer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- =========================================================================================
+         LOGIQUE APPLICATIVE COMPLÈTE (SPRINTS 1, 2, 3 & 4)
+    ========================================================================================== -->
+    <script>
+        // --- ÉTAT GLOBAL DE L'APPLICATION (DONNÉES MÉTIER) ---
+        const appState = {
+            selectedPlotId: 'PLT-1',
+            chartRange: '24h',
+            rainSimulated: false,
+            autoRainStop: true,
+            plots: [
+                {
+                    id: 'PLT-1',
+                    name: 'Parcelle Nord - Oliviers',
+                    crop: 'Oliviers (Chemlali)',
+                    area: 6.5,
+                    soil: 'Argilo-calcaire',
+                    sensorId: 'SN-EZ-101',
+                    sensorsCount: 4,
+                    moisture: 44,
+                    temperature: 23.5,
+                    salinity: '1.2 dS/m',
+                    threshold: 30,
+                    valveOpen: true,
+                    valveDuration: 45,
+                    svgPoints: '30,25 375,25 375,205 30,205',
+                    labelPos: { x: 202, y: 115 },
+                    history24h: [46, 45, 44, 43, 42, 43, 44],
+                    temp24h: [20, 21, 23, 25, 24.5, 24, 23.5]
+                },
+                {
+                    id: 'PLT-2',
+                    name: 'Parcelle Sud - Agrumes',
+                    crop: 'Agrumes (Orangers Maltaises)',
+                    area: 4.5,
+                    soil: 'Limoneux',
+                    sensorId: 'SN-EZ-204',
+                    sensorsCount: 3,
+                    moisture: 39,
+                    temperature: 24.2,
+                    salinity: '1.4 dS/m',
+                    threshold: 35,
+                    valveOpen: false,
+                    valveDuration: 30,
+                    svgPoints: '30,255 375,255 375,435 30,435',
+                    labelPos: { x: 202, y: 345 },
+                    history24h: [43, 42, 41, 40, 39.5, 39, 39],
+                    temp24h: [21, 22, 24, 26, 25, 24.5, 24.2]
+                },
+                {
+                    id: 'PLT-3',
+                    name: 'Parcelle Est - Maraîchage',
+                    crop: 'Tomates & Poivrons',
+                    area: 3.5,
+                    soil: 'Sablonneux',
+                    sensorId: 'SN-EZ-308',
+                    sensorsCount: 3,
+                    moisture: 28, // En alerte initiale pour démonstration
+                    temperature: 25.8,
+                    salinity: '1.6 dS/m',
+                    threshold: 35,
+                    valveOpen: false,
+                    valveDuration: 25,
+                    svgPoints: '425,25 770,25 770,205 425,205',
+                    labelPos: { x: 597, y: 115 },
+                    history24h: [37, 35, 33, 31, 30, 29, 28],
+                    temp24h: [22, 23, 25, 27, 26.5, 26, 25.8]
+                },
+                {
+                    id: 'PLT-4',
+                    name: 'Parcelle Ouest - Vignes',
+                    crop: 'Vignes de Table',
+                    area: 4.0,
+                    soil: 'Argilo-sableux',
+                    sensorId: 'SN-EZ-412',
+                    sensorsCount: 2,
+                    moisture: 48,
+                    temperature: 23.0,
+                    salinity: '1.1 dS/m',
+                    threshold: 28,
+                    valveOpen: false,
+                    valveDuration: 35,
+                    svgPoints: '425,255 770,255 770,435 425,435',
+                    labelPos: { x: 597, y: 345 },
+                    history24h: [50, 49, 49, 48.5, 48, 48, 48],
+                    temp24h: [19.5, 21, 22.5, 24.5, 24, 23.5, 23]
+                }
+            ],
+            alerts: [
+                {
+                    id: 'ALT-1',
+                    time: 'Aujourd\'hui, 09:40',
+                    plotName: 'Parcelle Est - Maraîchage',
+                    message: 'Humidité du sol descendue à 28% (Seuil critique : 35%). SMS envoyé au +216 98 452 110.',
+                    type: 'CRITICAL'
+                }
+            ],
+            irrigationHistory: [
+                { date: '13/11/2026', plot: 'Parcelle Nord - Oliviers', duration: '45 min', volume: '1 350 L', mode: 'Manuel (App)' },
+                { date: '12/11/2026', plot: 'Parcelle Sud - Agrumes', duration: '30 min', volume: '980 L', mode: 'Auto Météo' },
+                { date: '11/11/2026', plot: 'Parcelle Ouest - Vignes', duration: '40 min', volume: '1 120 L', mode: 'Auto Météo' },
+                { date: '10/11/2026', plot: 'Parcelle Est - Maraîchage', duration: '25 min', volume: '760 L', mode: 'Alerte Seuil' }
+            ]
+        };
+
+        let soilChartInstance = null;
+
+        // --- NAVIGATION PORTAIL PUBLIC <-> DASHBOARD (SPRINT 1) ---
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden-view');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden-view');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            closeLoginModal();
+            document.getElementById('public-portal-view').classList.add('hidden-view');
+            document.getElementById('dashboard-view').classList.remove('hidden-view');
+            showToast('Connexion réussie', 'Bienvenue dans votre Espace Agriculteur Ezzayra.', 'success');
+            refreshAllViews();
+        }
+
+        function logout() {
+            document.getElementById('dashboard-view').classList.add('hidden-view');
+            document.getElementById('public-portal-view').classList.remove('hidden-view');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function handleContactSubmit(e) {
+            e.preventDefault();
+            showToast('Demande envoyée', 'Un ingénieur agronome Ezzayra vous contactera sous 24h.', 'success');
+            e.target.reset();
+        }
+
+        // --- NAVIGATION PAR ONGLETS DANS LE DASHBOARD ---
+        function switchTab(tabKey) {
+            // Masquer tous les onglets
+            document.querySelectorAll('.dashboard-tab').forEach(el => el.classList.add('hidden-view'));
+            document.getElementById(`tab-${tabKey}`).classList.remove('hidden-view');
+
+            // Mettre à jour l'état actif dans la sidebar
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                if (btn.dataset.tab === tabKey) {
+                    btn.classList.add('bg-ezzayra-green', 'text-ezzayra-dark', 'font-bold');
+                    btn.classList.remove('text-gray-200', 'hover:bg-white/10');
+                } else {
+                    btn.classList.remove('bg-ezzayra-green', 'text-ezzayra-dark', 'font-bold');
+                    btn.classList.add('text-gray-200', 'hover:bg-white/10');
+                }
+            });
+
+            // Titres dynamiques
+            const titles = {
+                overview: ['Tableau de Bord Général', 'Supervision en temps réel de votre exploitation agricole'],
+                map: ['Cartographie des Parcelles & Capteurs IoT', 'Visualisation spatiale et configuration des sondes LoRaWAN'],
+                analytics: ['Analyse Graphique, Alertes & Rapports', 'Courbes hydriques, notifications SMS/Email et exportation CSV'],
+                irrigation: ['Pilotage des Électrovannes & Météo', 'Contrôle à distance de l\'arrosage et automatisation climatique'],
+                account: ['Mon Compte & Préférences d\'Alerte', 'Paramètres de profil et canaux de notification']
+            };
+            document.getElementById('page-title').textContent = titles[tabKey][0];
+            document.getElementById('page-subtitle').textContent = titles[tabKey][1];
+
+            if (tabKey === 'analytics') {
+                setTimeout(updateAnalyticsChart, 50);
+            }
+        }
+
+        // --- RAFRAÎCHISSEMENT GLOBAL DES DONNÉES ---
+        function refreshAllViews() {
+            updateKPIs();
+            renderOverviewPlots();
+            renderSvgMap();
+            renderPlotDetailPanel();
+            populateChartSelector();
+            renderAlertsLog();
+            renderIrrigationHistory();
+            renderWeatherForecast();
+            renderValvesControl();
+        }
+
+        function updateKPIs() {
+            const totalPlots = appState.plots.length;
+            const totalArea = appState.plots.reduce((sum, p) => sum + Number(p.area), 0).toFixed(1);
+            const totalSensors = appState.plots.reduce((sum, p) => sum + p.sensorsCount, 0);
+            const activeValves = appState.plots.filter(p => p.valveOpen).length;
+            const avgMoisture = Math.round(appState.plots.reduce((sum, p) => sum + p.moisture, 0) / totalPlots);
+
+            document.getElementById('kpi-plots').textContent = totalPlots;
+            document.getElementById('kpi-total-area').innerHTML = `Superficie totale : <strong>${totalArea} ha</strong>`;
+            document.getElementById('kpi-sensors').textContent = `${totalSensors}/${totalSensors}`;
+            document.getElementById('kpi-valves').textContent = `${activeValves} / ${totalPlots}`;
+            document.getElementById('kpi-valve-status').textContent = activeValves > 0 
+                ? `${activeValves} vanne(s) en cours d'arrosage` 
+                : 'Toutes les vannes sont fermées';
+            document.getElementById('kpi-moisture').textContent = `${avgMoisture}%`;
+            document.getElementById('alert-badge-count').textContent = appState.alerts.length;
+        }
+
+        // --- SPRINT 1 : LISTE RAPIDE DES PARCELLES SUR LA VUE D'ENSEMBLE ---
+        function renderOverviewPlots() {
+            const container = document.getElementById('overview-plots-list');
+            container.innerHTML = appState.plots.map(plot => {
+                const isLow = plot.moisture < plot.threshold;
+                return `
+                    <div onclick="selectPlot('${plot.id}'); switchTab('map');" class="p-4 rounded-xl border ${isLow ? 'border-red-200 bg-red-50/40' : 'border-gray-200 bg-gray-50/50'} hover:shadow-xs transition cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-sm text-ezzayra-dark">${plot.name}</h4>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}">
+                                ${isLow ? 'Stress Hydrique' : 'Optimal'}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 mb-3">${plot.crop} • ${plot.area} ha • Capteur ${plot.sensorId}</p>
+                        <div class="flex items-center justify-between text-xs font-semibold">
+                            <span class="${isLow ? 'text-red-600' : 'text-ezzayra-dark'}"><i class="fa-solid fa-droplet mr-1"></i> Humidité : ${plot.moisture}%</span>
+                            <span class="text-gray-600"><i class="fa-solid fa-temperature-half mr-1"></i> ${plot.temperature}°C</span>
+                            <span class="${plot.valveOpen ? 'text-cyan-600 font-bold' : 'text-gray-400'}">
+                                ${plot.valveOpen ? '● Vanne ON' : '○ Vanne OFF'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- SPRINT 2 : CARTE INTERACTIVE SVG & FICHE PARCELLE ---
+        function renderSvgMap() {
+            const layer = document.getElementById('svg-plots-layer');
+            layer.innerHTML = appState.plots.map(plot => {
+                const isLow = plot.moisture < plot.threshold;
+                const isSelected = plot.id === appState.selectedPlotId;
+                const fillColor = isLow ? '#ef4444' : '#2d6a4f';
+                return `
+                    <g onclick="selectPlot('${plot.id}')" class="plot-polygon">
+                        <polygon points="${plot.svgPoints}" fill="${fillColor}" fill-opacity="0.85" stroke="#ffffff" stroke-width="2.5" class="${isSelected ? 'plot-selected' : ''}" rx="8"/>
+                        <text x="${plot.labelPos.x}" y="${plot.labelPos.y - 12}" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="bold">${plot.name}</text>
+                        <text x="${plot.labelPos.x}" y="${plot.labelPos.y + 8}" text-anchor="middle" fill="#dcfce7" font-size="12">Humidité: ${plot.moisture}% | ${plot.temperature}°C</text>
+                        <text x="${plot.labelPos.x}" y="${plot.labelPos.y + 26}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="600">
+                            ${plot.valveOpen ? '💧 IRRIGATION ACTIVE' : '📡 ' + plot.sensorId}
+                        </text>
+                    </g>
+                `;
+            }).join('');
+        }
+
+        function selectPlot(plotId) {
+            appState.selectedPlotId = plotId;
+            renderSvgMap();
+            renderPlotDetailPanel();
+        }
+
+        function renderPlotDetailPanel() {
+            const plot = appState.plots.find(p => p.id === appState.selectedPlotId) || appState.plots[0];
+            const isLow = plot.moisture < plot.threshold;
+            const panel = document.getElementById('plot-detail-panel');
+
+            panel.innerHTML = `
+                <div>
+                    <div class="flex justify-between items-start mb-4 pb-3 border-b border-gray-100">
+                        <div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">Fiche Agronomique</span>
+                            <h3 class="text-xl font-bold text-ezzayra-dark mt-1.5">${plot.name}</h3>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${isLow ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}">
+                            ${isLow ? 'Alerte Seuil' : 'Normal'}
+                        </span>
+                    </div>
+
+                    <div class="space-y-3 text-sm mb-6">
+                        <div class="flex justify-between py-1.5 border-b border-gray-50">
+                            <span class="text-gray-500">Culture :</span>
+                            <span class="font-semibold text-gray-800">${plot.crop}</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-gray-50">
+                            <span class="text-gray-500">Superficie :</span>
+                            <span class="font-semibold text-gray-800">${plot.area} Hectares</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-gray-50">
+                            <span class="text-gray-500">Type de sol :</span>
+                            <span class="font-semibold text-gray-800">${plot.soil}</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-gray-50">
+                            <span class="text-gray-500">Capteur IoT principal :</span>
+                            <span class="font-mono font-bold text-ezzayra-dark">${plot.sensorId} (${plot.sensorsCount} sondes)</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 border-b border-gray-50">
+                            <span class="text-gray-500">Seuil critique configuré :</span>
+                            <span class="font-bold text-amber-600">${plot.threshold}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Mesures en direct -->
+                    <div class="grid grid-cols-3 gap-2.5 text-center mb-6">
+                        <div class="p-3 rounded-xl ${isLow ? 'bg-red-50 border border-red-200' : 'bg-emerald-50'}">
+                            <p class="text-[11px] text-gray-500 font-semibold">Humidité</p>
+                            <p class="text-lg font-bold ${isLow ? 'text-red-600' : 'text-ezzayra-dark'}">${plot.moisture}%</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gray-50">
+                            <p class="text-[11px] text-gray-500 font-semibold">Temp. Sol</p>
+                            <p class="text-lg font-bold text-gray-800">${plot.temperature}°C</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gray-50">
+                            <p class="text-[11px] text-gray-500 font-semibold">Salinité</p>
+                            <p class="text-sm font-bold text-gray-800 mt-1">${plot.salinity}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2.5">
+                    <button onclick="toggleValve('${plot.id}')" class="w-full py-3 rounded-xl font-bold text-sm transition cursor-pointer ${plot.valveOpen ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-ezzayra-dark text-white hover:bg-emerald-900'}">
+                        <i class="fa-solid fa-power-off mr-1.5"></i>
+                        ${plot.valveOpen ? 'Fermer l\'Électrovanne (Arrêter)' : 'Ouvrir l\'Électrovanne (Arroser)'}
+                    </button>
+                    <button onclick="document.getElementById('chart-plot-selector').value='${plot.id}'; switchTab('analytics');" class="w-full py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold text-xs hover:bg-gray-50 transition cursor-pointer">
+                        Voir les courbes historiques de cette parcelle
+                    </button>
+                </div>
+            `;
+        }
+
+        // Modale d'ajout de parcelle & capteur (Sprint 2)
+        function openAddPlotModal() {
+            document.getElementById('add-plot-modal').classList.remove('hidden-view');
+        }
+        function closeAddPlotModal() {
+            document.getElementById('add-plot-modal').classList.add('hidden-view');
+        }
+
+        function handleAddPlot(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-plot-name').value;
+            const crop = document.getElementById('new-plot-crop').value;
+            const area = parseFloat(document.getElementById('new-plot-area').value);
+            const soil = document.getElementById('new-plot-soil').value;
+            const sensorId = document.getElementById('new-plot-sensor').value;
+            const threshold = parseInt(document.getElementById('new-plot-threshold').value, 10);
+
+            const newId = `PLT-${appState.plots.length + 1}`;
+            // Positionnement central sur la carte SVG pour la nouvelle parcelle
+            const newPlot = {
+                id: newId,
+                name,
+                crop,
+                area,
+                soil,
+                sensorId,
+                sensorsCount: 2,
+                moisture: 45,
+                temperature: 23.2,
+                salinity: '1.2 dS/m',
+                threshold,
+                valveOpen: false,
+                valveDuration: 30,
+                svgPoints: '295,165 505,165 505,295 295,295',
+                labelPos: { x: 400, y: 230 },
+                history24h: [45, 45, 44, 45, 45, 45, 45],
+                temp24h: [21, 22, 23, 24, 23.5, 23.2, 23.2]
+            };
+
+            appState.plots.push(newPlot);
+            appState.selectedPlotId = newId;
+            closeAddPlotModal();
+            refreshAllViews();
+            switchTab('map');
+            showToast('Parcelle & Capteur ajoutés', `${name} (${sensorId}) a été ajoutée à la carte.`, 'success');
+        }
+
+        // --- SPRINT 3 : GRAPHIQUES CHART.JS, ALERTES & EXPORT CSV ---
+        function populateChartSelector() {
+            const sel = document.getElementById('chart-plot-selector');
+            const current = sel.value || appState.selectedPlotId;
+            sel.innerHTML = appState.plots.map(p => `<option value="${p.id}">${p.name} (${p.sensorId})</option>`).join('');
+            if (appState.plots.some(p => p.id === current)) sel.value = current;
+        }
+
+        function setChartRange(range) {
+            appState.chartRange = range;
+            document.getElementById('btn-range-24h').className = range === '24h' 
+                ? 'px-3 py-1.5 rounded-lg bg-white text-ezzayra-dark shadow-xs cursor-pointer' 
+                : 'px-3 py-1.5 rounded-lg text-gray-600 cursor-pointer';
+            document.getElementById('btn-range-7d').className = range === '7d' 
+                ? 'px-3 py-1.5 rounded-lg bg-white text-ezzayra-dark shadow-xs cursor-pointer' 
+                : 'px-3 py-1.5 rounded-lg text-gray-600 cursor-pointer';
+            updateAnalyticsChart();
+        }
+
+        function updateAnalyticsChart() {
+            const plotId = document.getElementById('chart-plot-selector').value || appState.plots[0].id;
+            const plot = appState.plots.find(p => p.id === plotId);
+            const ctx = document.getElementById('soilMoistureChart').getContext('2d');
+
+            const labels = appState.chartRange === '24h' 
+                ? ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Maintenant']
+                : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Auj.'];
+
+            const moistureData = appState.chartRange === '24h'
+                ? [...plot.history24h.slice(0, 6), plot.moisture]
+                : [47, 45, 42, 40, 38, 36, plot.moisture];
+
+            const thresholdLine = Array(labels.length).fill(plot.threshold);
+
+            if (soilChartInstance) {
+                soilChartInstance.destroy();
+            }
+
+            soilChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Humidité du Sol (%)',
+                            data: moistureData,
+                            borderColor: '#1b4332',
+                            backgroundColor: 'rgba(82, 183, 136, 0.2)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35
+                        },
+                        {
+                            label: `Seuil Critique (${plot.threshold}%)`,
+                            data: thresholdLine,
+                            borderColor: '#dc2626',
+                            borderDash: [6, 6],
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'Température Sol (°C)',
+                            data: plot.temp24h,
+                            borderColor: '#d97706',
+                            borderWidth: 2,
+                            tension: 0.35,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: { beginAtZero: false, min: 10, max: 70 }
+                    }
+                }
+            });
+        }
+
+        // Simulation d'alerte sécheresse (Sprint 3)
+        function simulateDroughtStress() {
+            const targetPlot = appState.plots[1]; // Parcelle Sud - Agrumes
+            targetPlot.moisture = 24;
+            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            
+            appState.alerts.unshift({
+                id: `ALT-${Date.now()}`,
+                time: `Aujourd'hui, ${now}`,
+                plotName: targetPlot.name,
+                message: `ALERTE CRITIQUE : Humidité à ${targetPlot.moisture}% (Seuil : ${targetPlot.threshold}%). Notification SMS & Email envoyée.`,
+                type: 'CRITICAL'
+            });
+
+            refreshAllViews();
+            showToast(
+                '⚠️ Alerte Stress Hydrique (SMS/Email)',
+                `${targetPlot.name} est passée à ${targetPlot.moisture}% d'humidité !`,
+                'danger'
+            );
+        }
+
+        function renderAlertsLog() {
+            const list = document.getElementById('alerts-log-list');
+            list.innerHTML = appState.alerts.map(alert => `
+                <div class="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-600 mt-1"></i>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-xs text-red-800">${alert.plotName}</span>
+                            <span class="text-[11px] text-red-600">${alert.time}</span>
+                        </div>
+                        <p class="text-xs text-red-700 mt-1">${alert.message}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderIrrigationHistory() {
+            const tbody = document.getElementById('irrigation-history-tbody');
+            tbody.innerHTML = appState.irrigationHistory.map(row => `
+                <tr>
+                    <td class="py-2.5 px-2 text-gray-600">${row.date}</td>
+                    <td class="py-2.5 px-2 font-semibold text-ezzayra-dark">${row.plot}</td>
+                    <td class="py-2.5 px-2">${row.duration}</td>
+                    <td class="py-2.5 px-2 font-medium">${row.volume}</td>
+                    <td class="py-2.5 px-2"><span class="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-medium">${row.mode}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Export CSV réel téléchargeable (Sprint 3)
+        function exportCSV() {
+            const headers = ['Date', 'Parcelle', 'Duree', 'Volume_Eau', 'Mode_Declenchement'];
+            const rows = appState.irrigationHistory.map(r => [r.date, `"${r.plot}"`, r.duration, r.volume, `"${r.mode}"`].join(','));
+            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'rapport_irrigation_ezzayra_2026.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Export CSV terminé', 'Le fichier rapport_irrigation_ezzayra_2026.csv a été téléchargé.', 'success');
+        }
+
+        // --- SPRINT 4 : PILOTAGE DES ÉLECTROVANNES & AUTOMATISATION MÉTÉO ---
+        function renderWeatherForecast() {
+            const days = appState.rainSimulated
+                ? [
+                    { day: 'Aujourd\'hui', icon: 'fa-cloud-showers-heavy text-blue-600', temp: '19°C', rain: '85%', desc: 'Fortes averses prévues' },
+                    { day: 'Demain', icon: 'fa-cloud-rain text-blue-500', temp: '18°C', rain: '70%', desc: 'Pluie modérée' },
+                    { day: 'Après-demain', icon: 'fa-cloud-sun text-amber-500', temp: '22°C', rain: '15%', desc: 'Éclaircies' }
+                  ]
+                : [
+                    { day: 'Aujourd\'hui', icon: 'fa-sun text-amber-500', temp: '24°C', rain: '10%', desc: 'Ensoleillé et sec' },
+                    { day: 'Demain', icon: 'fa-sun text-amber-500', temp: '25°C', rain: '5%', desc: 'Ciel dégagé' },
+                    { day: 'Après-demain', icon: 'fa-cloud-sun text-amber-400', temp: '23°C', rain: '20%', desc: 'Légèrement voilé' }
+                  ];
+
+            document.getElementById('weather-forecast-cards').innerHTML = days.map(d => `
+                <div class="p-4 rounded-xl border ${appState.rainSimulated && parseInt(d.rain) > 60 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'} flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase text-gray-500">${d.day}</p>
+                        <p class="text-xl font-bold text-ezzayra-dark mt-0.5">${d.temp}</p>
+                        <p class="text-xs text-gray-600 mt-0.5">${d.desc}</p>
+                    </div>
+                    <div class="text-right">
+                        <i class="fa-solid ${d.icon} text-2xl"></i>
+                        <p class="text-xs font-bold text-blue-700 mt-1">Pluie : ${d.rain}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            // Mise à jour pill météo en haut
+            document.getElementById('weather-pill').innerHTML = appState.rainSimulated
+                ? `<i class="fa-solid fa-cloud-showers-heavy text-blue-600 text-lg"></i><span>Mornag : <strong>19°C</strong> • Pluie prévue (85%)</span>`
+                : `<i class="fa-solid fa-sun text-amber-500 text-lg"></i><span>Mornag : <strong>24°C</strong> • Ensoleillé (Pluie 10%)</span>`;
+        }
+
+        function toggleAutoRainSetting(checked) {
+            appState.autoRainStop = checked;
+            if (checked && appState.rainSimulated) {
+                suspendAllValvesForRain();
+            }
+        }
+
+        function toggleRainSimulation(forceTrue = false) {
+            appState.rainSimulated = forceTrue ? true : !appState.rainSimulated;
+            const btn = document.getElementById('btn-sim-rain');
+            btn.innerHTML = appState.rainSimulated
+                ? `<i class="fa-solid fa-sun mr-1"></i> Revenir au Temps Sec (10%)`
+                : `<i class="fa-solid fa-cloud-rain mr-1"></i> Simuler Prévision Pluie (85%)`;
+
+            if (appState.rainSimulated && appState.autoRainStop) {
+                suspendAllValvesForRain();
+            } else if (!appState.rainSimulated) {
+                showToast('Météo actualisée', 'Retour aux conditions ensoleillées normales.', 'info');
+            }
+            refreshAllViews();
+        }
+
+        function suspendAllValvesForRain() {
+            appState.plots.forEach(p => p.valveOpen = false);
+            showToast(
+                '🌧️ Automatisation Météo Activée',
+                'Pluie prévue à 85% (>60%). Toutes les électrovannes ont été fermées automatiquement pour économiser l\'eau.',
+                'info'
+            );
+        }
+
+        function renderValvesControl() {
+            const grid = document.getElementById('valves-control-grid');
+            grid.innerHTML = appState.plots.map(plot => `
+                <div class="bg-white p-5 rounded-2xl shadow-xs border ${plot.valveOpen ? 'border-cyan-400 ring-1 ring-cyan-200' : 'border-gray-100'}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-ezzayra-dark text-base">${plot.name}</h4>
+                            <p class="text-xs text-gray-500">Humidité actuelle : <strong>${plot.moisture}%</strong> (Seuil : ${plot.threshold}%)</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 ${plot.valveOpen ? 'bg-cyan-100 text-cyan-800' : 'bg-gray-100 text-gray-600'}">
+                            <span class="w-2 h-2 rounded-full ${plot.valveOpen ? 'bg-cyan-500 valve-active-pulse' : 'bg-gray-400'}"></span>
+                            ${plot.valveOpen ? 'VANNE OUVERTE' : 'VANNE FERMÉE'}
+                        </span>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1">
+                            <span>Durée programmée du cycle :</span>
+                            <span class="text-ezzayra-dark font-bold">${plot.valveDuration} minutes</span>
+                        </div>
+                        <input type="range" min="10" max="90" step="5" value="${plot.valveDuration}" oninput="updateValveDuration('${plot.id}', this.value)" class="w-full accent-emerald-700 cursor-pointer">
+                    </div>
+
+                    <button onclick="toggleValve('${plot.id}')" class="w-full py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${plot.valveOpen ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-ezzayra-dark hover:bg-emerald-900 text-white'}">
+                        <i class="fa-solid ${plot.valveOpen ? 'fa-stop' : 'fa-faucet-drip'} mr-1.5"></i>
+                        ${plot.valveOpen ? 'Arrêter l\'arrosage immédiatement' : 'Démarrer l\'irrigation (' + plot.valveDuration + ' min)'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function updateValveDuration(plotId, val) {
+            const plot = appState.plots.find(p => p.id === plotId);
+            if (plot) {
+                plot.valveDuration = parseInt(val, 10);
+                renderValvesControl();
+            }
+        }
+
+        function toggleValve(plotId) {
+            const plot = appState.plots.find(p => p.id === plotId);
+            if (!plot) return;
+
+            if (!plot.valveOpen && appState.rainSimulated && appState.autoRainStop) {
+                showToast('Blocage Météo Actif', 'Impossible d\'ouvrir la vanne : forte pluie prévue (85%). Désactivez l\'arrêt auto pour forcer.', 'danger');
+                return;
+            }
+
+            plot.valveOpen = !plot.valveOpen;
+
+            if (plot.valveOpen) {
+                // Simule une remontée progressive de l'humidité
+                plot.moisture = Math.min(60, plot.moisture + 6);
+                const estVolume = plot.valveDuration * 30;
+                appState.irrigationHistory.unshift({
+                    date: '13/11/2026',
+                    plot: plot.name,
+                    duration: `${plot.valveDuration} min`,
+                    volume: `${estVolume} L`,
+                    mode: 'Télécommande Web'
+                });
+                showToast('Électrovanne Ouverte', `Arrosage démarré sur ${plot.name} pendant ${plot.valveDuration} min.`, 'success');
+            } else {
+                showToast('Électrovanne Fermée', `Arrosage arrêté sur ${plot.name}.`, 'info');
+            }
+
+            refreshAllViews();
+        }
+
+        // --- SPRINT 4 : SAUVEGARDE PRÉFÉRENCES COMPTE ---
+        function saveAccountPreferences(e) {
+            e.preventDefault();
+            const newName = document.getElementById('acc-name').value;
+            document.getElementById('sidebar-farmer-name').textContent = newName;
+            showToast('Profil mis à jour', 'Vos paramètres de compte et préférences d\'alertes ont été enregistrés.', 'success');
+        }
+
+        // --- UTILITAIRE DE NOTIFICATIONS TOAST ---
+        function showToast(title, message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-ezzayra-dark text-white border-l-4 border-ezzayra-green',
+                danger: 'bg-red-700 text-white border-l-4 border-amber-400',
+                info: 'bg-slate-800 text-white border-l-4 border-blue-400'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `${colors[type]} p-4 rounded-xl shadow-xl pointer-events-auto transition-all duration-300 text-sm`;
+            toast.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <strong class="font-bold">${title}</strong>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-white/70 hover:text-white cursor-pointer">&times;</button>
+                </div>
+                <p class="text-xs text-white/90 mt-1">${message}</p>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+    </script>
+</body>
+</html>
 
 </body>
 </html>
